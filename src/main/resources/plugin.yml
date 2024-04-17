@@ -1,4 +1,4 @@
-name: Plugin
+name: OverleveledEnchantments
 version: '${project.version}'
 main: io.github.rainvaporeon.overlevelenchants.Plugin
 api-version: '1.20'
