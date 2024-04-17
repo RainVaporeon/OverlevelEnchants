@@ -25,43 +25,42 @@ public class AnvilEventHandler implements Listener {
         if (result == null) {
             return;
         }
-        Map<Enchantment, Integer> appendSet = new HashMap<>(left.getEnchantments());
+        Map<Enchantment, Integer> appendSet = new HashMap<>(result.getEnchantments());
         Map<Enchantment, Integer> storedEnchantmentSet = new HashMap<>();
-        if (left.getItemMeta() instanceof EnchantmentStorageMeta enchantStorage) {
+        if (result.getItemMeta() instanceof EnchantmentStorageMeta enchantStorage) {
             storedEnchantmentSet.putAll(enchantStorage.getStoredEnchants());
+        }
+        left.getEnchantments().forEach((key, value) -> appendSet.compute(key, (k, v) -> {
+            if (v == null) return value;
+            return Math.max(v, value);
+        }));
+        if (left.getItemMeta() instanceof EnchantmentStorageMeta enchantStorage) {
+            enchantStorage.getStoredEnchants().forEach((key, value) -> storedEnchantmentSet.compute(key, (k, v) -> {
+                if (v == null) return value;
+                log("left meta k, max = " + k + ", " + Math.max(v, value));
+                return Math.max(v, value);
+            }));
         }
         right.getEnchantments().forEach((key, value) -> appendSet.compute(key, (k, v) -> {
             if (v == null) return value;
-            if (value < v) return v;
-            return value;
+            return Math.max(v, value);
         }));
         if (right.getItemMeta() instanceof EnchantmentStorageMeta enchantStorage) {
             enchantStorage.getStoredEnchants().forEach((key, value) -> storedEnchantmentSet.compute(key, (k, v) -> {
                 if (v == null) return value;
-                if (value < v) return v;
-                return value;
+                log("right meta k, max = " + k + ", " + Math.max(v, value));
+                return Math.max(v, value);
             }));
         }
 
-        if (result.getType() == Material.ENCHANTED_BOOK) {
-            if (result.getItemMeta() instanceof EnchantmentStorageMeta enchantStorage) {
-                storedEnchantmentSet.forEach((k, v) -> {
-                    int metaLevel = enchantStorage.getStoredEnchantLevel(k);
-                    int appendLevel = appendSet.getOrDefault(k, 0);
-                    if (metaLevel != 0 || appendLevel != 0) {
-                        // pick highest
-                        int max = v;
-                        if (metaLevel > max) max = metaLevel;
-                        if (appendLevel > max) max = appendLevel;
-                        enchantStorage.addStoredEnchant(k, max, true);
-                    } else {
-                        // just add
-                        enchantStorage.addStoredEnchant(k, v, true);
-                    }
-                });
-            }
+        result.addUnsafeEnchantments(appendSet);
+        if (result.getItemMeta() instanceof EnchantmentStorageMeta enchantStorage) {
+            storedEnchantmentSet.forEach((k, v) -> {
+                int metaLevel = enchantStorage.getStoredEnchantLevel(k);
+                enchantStorage.addStoredEnchant(k, Math.max(metaLevel, v), true);
+            });
+            result.setItemMeta(enchantStorage);
         } else {
-            result.addUnsafeEnchantments(appendSet);
             storedEnchantmentSet.forEach((k, v) -> {
                 int appendLevel = appendSet.getOrDefault(k, 0);
                 result.addUnsafeEnchantment(k, Math.max(v, appendLevel));
@@ -71,7 +70,7 @@ public class AnvilEventHandler implements Listener {
         event.setResult(result);
     }
 
-    private boolean isOverleveled(Map.Entry<Enchantment, Integer> entry) {
-        return entry.getKey().getMaxLevel() < entry.getValue();
+    private static void log(String message) {
+        Plugin.getInstance().getLogger().info(message);
     }
 }
