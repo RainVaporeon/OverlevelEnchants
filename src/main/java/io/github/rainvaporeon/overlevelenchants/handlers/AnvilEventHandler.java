@@ -36,22 +36,26 @@ public class AnvilEventHandler implements Listener {
         if (left.getItemMeta() instanceof EnchantmentStorageMeta enchantStorage) {
             enchantStorage.getStoredEnchants().forEach((key, value) -> storedEnchantmentSet.compute(key, (k, v) -> {
                 if (v == null) return value;
-                log("left meta k, max = " + k + ", " + Math.max(v, value));
                 return Math.max(v, value);
             }));
         }
         right.getEnchantments().forEach((key, value) -> appendSet.compute(key, (k, v) -> {
             if (v == null) return value;
+            // do not allow conflicting enchantments be added on RHS
+            if (appendSet.keySet().stream().anyMatch(key::conflictsWith)) return null;
             return Math.max(v, value);
         }));
         if (right.getItemMeta() instanceof EnchantmentStorageMeta enchantStorage) {
             enchantStorage.getStoredEnchants().forEach((key, value) -> storedEnchantmentSet.compute(key, (k, v) -> {
                 if (v == null) return value;
-                log("right meta k, max = " + k + ", " + Math.max(v, value));
+                // do not allow conflicting enchantments be added on RHS
+                if (storedEnchantmentSet.keySet().stream().anyMatch(key::conflictsWith)) return null;
                 return Math.max(v, value);
             }));
         }
 
+        // books can include multiple types
+        appendSet.entrySet().removeIf(entry -> !entry.getKey().getItemTarget().includes(result.getType()));
         result.addUnsafeEnchantments(appendSet);
         if (result.getItemMeta() instanceof EnchantmentStorageMeta enchantStorage) {
             storedEnchantmentSet.forEach((k, v) -> {
