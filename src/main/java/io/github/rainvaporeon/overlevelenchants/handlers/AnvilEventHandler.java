@@ -31,11 +31,13 @@ public class AnvilEventHandler implements Listener {
         }
         left.getEnchantments().forEach((key, value) -> appendSet.compute(key, (k, v) -> {
             if (v == null) return value;
+            if (appendSet.keySet().stream().anyMatch(key::conflictsWith)) return null;
             return Math.max(v, value);
         }));
         if (left.getItemMeta() instanceof EnchantmentStorageMeta enchantStorage) {
             enchantStorage.getStoredEnchants().forEach((key, value) -> storedEnchantmentSet.compute(key, (k, v) -> {
                 if (v == null) return value;
+                if (storedEnchantmentSet.keySet().stream().anyMatch(key::conflictsWith)) return null;
                 return Math.max(v, value);
             }));
         }
