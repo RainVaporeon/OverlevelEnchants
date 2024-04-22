@@ -66,7 +66,10 @@ public class AnvilEventHandler implements Listener {
             });
             result.setItemMeta(enchantStorage);
         } else {
+            appendSet.forEach(result::addUnsafeEnchantment);
+            // override here to apply stored ones too
             storedEnchantmentSet.forEach((k, v) -> {
+                if (!k.getItemTarget().includes(result)) return;
                 int appendLevel = appendSet.getOrDefault(k, 0);
                 result.addUnsafeEnchantment(k, Math.max(v, appendLevel));
             });
