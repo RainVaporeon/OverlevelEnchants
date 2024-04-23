@@ -24,12 +24,12 @@ public class AnvilEventHandler implements Listener {
         if (result == null) {
             return;
         }
-        Map<Enchantment, Integer> appendSet = new HashMap<>(result.getEnchantments());
+        Map<Enchantment, Integer> appendSet = new HashMap<>(left.getEnchantments());
         Map<Enchantment, Integer> storedEnchantmentSet = new HashMap<>();
         if (result.getItemMeta() instanceof EnchantmentStorageMeta enchantStorage) {
             storedEnchantmentSet.putAll(enchantStorage.getStoredEnchants());
         }
-        left.getEnchantments().forEach((key, value) -> appendSet.compute(key, (k, v) -> {
+        result.getEnchantments().forEach((key, value) -> appendSet.compute(key, (k, v) -> {
             if (v == null) return value;
             if (appendSet.keySet().stream().anyMatch(key::conflictsWith)) return null;
             return Math.max(v, value);
