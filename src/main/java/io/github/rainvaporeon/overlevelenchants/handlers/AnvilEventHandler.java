@@ -31,27 +31,27 @@ public class AnvilEventHandler implements Listener {
         }
         result.getEnchantments().forEach((key, value) -> appendSet.compute(key, (k, v) -> {
             if (v == null) return value;
-            if (appendSet.keySet().stream().anyMatch(key::conflictsWith)) return null;
+            if (appendSet.keySet().stream().anyMatch(ke -> !key.equals(ke) && key.conflictsWith(key))) return null;
             return Math.max(v, value);
         }));
         if (left.getItemMeta() instanceof EnchantmentStorageMeta enchantStorage) {
             enchantStorage.getStoredEnchants().forEach((key, value) -> storedEnchantmentSet.compute(key, (k, v) -> {
                 if (v == null) return value;
-                if (storedEnchantmentSet.keySet().stream().anyMatch(key::conflictsWith)) return null;
+                if (storedEnchantmentSet.keySet().stream().anyMatch(ke -> !key.equals(ke) && key.conflictsWith(key))) return null;
                 return Math.max(v, value);
             }));
         }
         right.getEnchantments().forEach((key, value) -> appendSet.compute(key, (k, v) -> {
             if (v == null) return value;
             // do not allow conflicting enchantments be added on RHS
-            if (appendSet.keySet().stream().anyMatch(key::conflictsWith)) return null;
+            if (appendSet.keySet().stream().anyMatch(ke -> !key.equals(ke) && key.conflictsWith(key))) return null;
             return Math.max(v, value);
         }));
         if (right.getItemMeta() instanceof EnchantmentStorageMeta enchantStorage) {
             enchantStorage.getStoredEnchants().forEach((key, value) -> storedEnchantmentSet.compute(key, (k, v) -> {
                 if (v == null) return value;
                 // do not allow conflicting enchantments be added on RHS
-                if (storedEnchantmentSet.keySet().stream().anyMatch(key::conflictsWith)) return null;
+                if (storedEnchantmentSet.keySet().stream().anyMatch(ke -> !key.equals(ke) && key.conflictsWith(key))) return null;
                 return Math.max(v, value);
             }));
         }
