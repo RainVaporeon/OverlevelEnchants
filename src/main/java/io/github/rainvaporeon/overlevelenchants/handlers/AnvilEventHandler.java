@@ -24,57 +24,39 @@ public class AnvilEventHandler implements Listener {
         if (result == null) {
             return;
         }
-        Map<Enchantment, Integer> appendSet = new HashMap<>(left.getEnchantments());
-        Map<Enchantment, Integer> storedEnchantmentSet = new HashMap<>();
+        Map<Enchantment, Integer> resultSet = new HashMap<>(result.getEnchantments());
+        Map<Enchantment, Integer> resultStoredSet = new HashMap<>();
         if (result.getItemMeta() instanceof EnchantmentStorageMeta enchantStorage) {
-            storedEnchantmentSet.putAll(enchantStorage.getStoredEnchants());
-        }
-        result.getEnchantments().forEach((key, value) -> appendSet.compute(key, (k, v) -> {
-            if (v == null) return value;
-            if (appendSet.keySet().stream().anyMatch(ke -> !key.equals(ke) && key.conflictsWith(key))) return null;
-            return Math.max(v, value);
-        }));
-        if (left.getItemMeta() instanceof EnchantmentStorageMeta enchantStorage) {
-            enchantStorage.getStoredEnchants().forEach((key, value) -> storedEnchantmentSet.compute(key, (k, v) -> {
-                if (v == null) return value;
-                if (storedEnchantmentSet.keySet().stream().anyMatch(ke -> !key.equals(ke) && key.conflictsWith(key))) return null;
-                return Math.max(v, value);
-            }));
-        }
-        right.getEnchantments().forEach((key, value) -> appendSet.compute(key, (k, v) -> {
-            if (v == null) return value;
-            // do not allow conflicting enchantments be added on RHS
-            if (appendSet.keySet().stream().anyMatch(ke -> !key.equals(ke) && key.conflictsWith(key))) return null;
-            return Math.max(v, value);
-        }));
-        if (right.getItemMeta() instanceof EnchantmentStorageMeta enchantStorage) {
-            enchantStorage.getStoredEnchants().forEach((key, value) -> storedEnchantmentSet.compute(key, (k, v) -> {
-                if (v == null) return value;
-                // do not allow conflicting enchantments be added on RHS
-                if (storedEnchantmentSet.keySet().stream().anyMatch(ke -> !key.equals(ke) && key.conflictsWith(key))) return null;
-                return Math.max(v, value);
-            }));
+            resultSet.putAll(enchantStorage.getStoredEnchants());
         }
 
-        // books can include multiple types
-        appendSet.entrySet().removeIf(entry -> !entry.getKey().getItemTarget().includes(result.getType()));
-        result.addUnsafeEnchantments(appendSet);
-        if (result.getItemMeta() instanceof EnchantmentStorageMeta enchantStorage) {
-            storedEnchantmentSet.forEach((k, v) -> {
-                int metaLevel = enchantStorage.getStoredEnchantLevel(k);
-                enchantStorage.addStoredEnchant(k, Math.max(metaLevel, v), true);
+        left.getEnchantments().forEach((ench, level) -> {
+            if (ench.getMaxLevel() >= level) return;
+            resultSet.computeIfPresent(ench, (k, v) -> Math.max(v, level));
+        });
+        result.getEnchantments().forEach((ench, level) -> {
+            if (ench.getMaxLevel() >= level) return;
+            resultSet.computeIfPresent(ench, (k, v) -> Math.max(v, level));
+        });
+        if (left.getItemMeta() instanceof EnchantmentStorageMeta storage) {
+            storage.getStoredEnchants().forEach((ench, level) -> {
+                if (ench.getMaxLevel() >= level) return;
+                resultStoredSet.computeIfPresent(ench, (k, v) -> Math.max(v, level));
             });
-            result.setItemMeta(enchantStorage);
-        } else {
-            appendSet.forEach(result::addUnsafeEnchantment);
-            // override here to apply stored ones too
-            storedEnchantmentSet.forEach((k, v) -> {
-                if (!k.getItemTarget().includes(result)) return;
-                int appendLevel = appendSet.getOrDefault(k, 0);
-                result.addUnsafeEnchantment(k, Math.max(v, appendLevel));
+        }
+        if (right.getItemMeta() instanceof EnchantmentStorageMeta storage) {
+            storage.getStoredEnchants().forEach((ench, level) -> {
+                if (ench.getMaxLevel() >= level) return;
+                resultStoredSet.computeIfPresent(ench, (k, v) -> Math.max(v, level));
             });
         }
 
+        result.removeEnchantments();
+        resultSet.forEach(result::addUnsafeEnchantment);
+        if (result.getItemMeta() instanceof EnchantmentStorageMeta storage) {
+            storage.getStoredEnchants().keySet().forEach(storage::removeStoredEnchant);
+            resultStoredSet.forEach((k, v) -> storage.addStoredEnchant(k, v, true));
+        }
         event.setResult(result);
     }
 
