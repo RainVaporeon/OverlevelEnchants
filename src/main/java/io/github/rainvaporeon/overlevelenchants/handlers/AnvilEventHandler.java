@@ -27,15 +27,13 @@ public class AnvilEventHandler implements Listener {
         Map<Enchantment, Integer> resultSet = new HashMap<>(result.getEnchantments());
         Map<Enchantment, Integer> resultStoredSet = new HashMap<>();
         if (result.getItemMeta() instanceof EnchantmentStorageMeta enchantStorage) {
-            resultSet.putAll(enchantStorage.getStoredEnchants());
+            resultStoredSet.putAll(enchantStorage.getStoredEnchants());
         }
 
         left.getEnchantments().forEach((ench, level) -> {
-            if (ench.getMaxLevel() >= level) return;
             resultSet.computeIfPresent(ench, (k, v) -> Math.max(v, level));
         });
         right.getEnchantments().forEach((ench, level) -> {
-            if (ench.getMaxLevel() >= level) return;
             resultSet.computeIfPresent(ench, (k, v) -> Math.max(v, level));
         });
         if (left.getItemMeta() instanceof EnchantmentStorageMeta storage) {
