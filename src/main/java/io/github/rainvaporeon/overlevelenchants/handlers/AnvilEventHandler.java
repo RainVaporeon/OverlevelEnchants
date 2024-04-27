@@ -34,7 +34,7 @@ public class AnvilEventHandler implements Listener {
             if (ench.getMaxLevel() >= level) return;
             resultSet.computeIfPresent(ench, (k, v) -> Math.max(v, level));
         });
-        result.getEnchantments().forEach((ench, level) -> {
+        right.getEnchantments().forEach((ench, level) -> {
             if (ench.getMaxLevel() >= level) return;
             resultSet.computeIfPresent(ench, (k, v) -> Math.max(v, level));
         });
@@ -56,6 +56,13 @@ public class AnvilEventHandler implements Listener {
         if (result.getItemMeta() instanceof EnchantmentStorageMeta storage) {
             storage.getStoredEnchants().keySet().forEach(storage::removeStoredEnchant);
             resultStoredSet.forEach((k, v) -> storage.addStoredEnchant(k, v, true));
+        } else {
+            resultStoredSet.forEach((k, v) -> {
+                if (result.containsEnchantment(k)) {
+                    if (result.getEnchantmentLevel(k) > v) return;
+                }
+                result.addUnsafeEnchantment(k, v);
+            });
         }
         event.setResult(result);
     }
