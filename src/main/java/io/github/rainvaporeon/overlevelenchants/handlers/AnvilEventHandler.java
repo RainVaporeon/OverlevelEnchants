@@ -8,6 +8,7 @@ import org.bukkit.event.inventory.PrepareAnvilEvent;
 import org.bukkit.inventory.AnvilInventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.EnchantmentStorageMeta;
+import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -28,6 +29,12 @@ public class AnvilEventHandler implements Listener {
         Map<Enchantment, Integer> resultStoredSet = new HashMap<>();
         if (result.getItemMeta() instanceof EnchantmentStorageMeta enchantStorage) {
             resultStoredSet.putAll(enchantStorage.getStoredEnchants());
+        } else {
+            // In the event that the target is not a storage, we still want to
+            // ensure that overleveled books can be applied.
+            // Note that the result would do another comparison, so this is
+            // a redundant preparation
+            resultStoredSet.putAll(result.getEnchantments());
         }
 
         left.getEnchantments().forEach((ench, level) -> {
@@ -38,29 +45,26 @@ public class AnvilEventHandler implements Listener {
         });
         if (left.getItemMeta() instanceof EnchantmentStorageMeta storage) {
             storage.getStoredEnchants().forEach((ench, level) -> {
-                if (ench.getMaxLevel() >= level) return;
+                if (ench.getMaxLevel() >= level) return; // delegate to vanilla
                 resultStoredSet.computeIfPresent(ench, (k, v) -> Math.max(v, level));
             });
         }
         if (right.getItemMeta() instanceof EnchantmentStorageMeta storage) {
             storage.getStoredEnchants().forEach((ench, level) -> {
-                if (ench.getMaxLevel() >= level) return;
+                if (ench.getMaxLevel() >= level) return; // delegate to vanilla
                 resultStoredSet.computeIfPresent(ench, (k, v) -> Math.max(v, level));
             });
         }
 
         result.removeEnchantments();
         resultSet.forEach(result::addUnsafeEnchantment);
+        // apply to storage, otherwise apply to item
         if (result.getItemMeta() instanceof EnchantmentStorageMeta storage) {
             storage.getStoredEnchants().keySet().forEach(storage::removeStoredEnchant);
             resultStoredSet.forEach((k, v) -> storage.addStoredEnchant(k, v, true));
+            result.setItemMeta(storage);
         } else {
-            resultStoredSet.forEach((k, v) -> {
-                if (result.containsEnchantment(k)) {
-                    if (result.getEnchantmentLevel(k) > v) return;
-                }
-                result.addUnsafeEnchantment(k, v);
-            });
+            resultStoredSet.forEach(result::addUnsafeEnchantment);
         }
         event.setResult(result);
     }
