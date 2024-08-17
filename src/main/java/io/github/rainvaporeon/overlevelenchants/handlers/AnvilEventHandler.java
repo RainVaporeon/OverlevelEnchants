@@ -60,11 +60,14 @@ public class AnvilEventHandler implements Listener {
         resultSet.forEach(result::addUnsafeEnchantment);
         // apply to storage, otherwise apply to item
         if (result.getItemMeta() instanceof EnchantmentStorageMeta storage) {
-            storage.getStoredEnchants().keySet().forEach(storage::removeStoredEnchant);
+            storage.getStoredEnchants().keySet().clear();
             resultStoredSet.forEach((k, v) -> storage.addStoredEnchant(k, v, true));
             result.setItemMeta(storage);
         } else {
+            ItemMeta meta = result.getItemMeta();
+            resultSet.forEach((e, l) -> meta.addEnchant(e, l, true));
             resultStoredSet.forEach(result::addUnsafeEnchantment);
+            result.setItemMeta(meta);
         }
         event.setResult(result);
     }
